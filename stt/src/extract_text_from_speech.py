@@ -1,25 +1,18 @@
+from argparse import ArgumentParser
 from pathlib import Path
 
 import librosa
-import torch
-from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
 
-# TODO Move model_size to arguments
-def main():
-    # model_size = "medium"
-    # model_size = "large-v2"
-    model_size = "large-v3-turbo"
-    model, processor = prepare_stt_model(model_size)
+def main(args):
+    model, processor = prepare_stt_model(args.model_size)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
-    print(f"Prepared: {model_size=} {device=}")
+    print(f"Prepared: model_size={args.model_size} {device=}")
 
-    for file_path in Path.cwd().iterdir():
-        if not file_path.match("*.ogg"):
-            continue
-
+    for file_path in args.audio_files:
+        file_path = Path(file_path)
         output_file_name = file_path.with_suffix(".txt")
 
         if output_file_name.exists():
@@ -78,4 +71,21 @@ def extract_text_from_features(model, processor, inputs: dict) -> str:
 
 
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser(description="Transcribe audio files to text by the Whisper Model.")
+    parser.add_argument(
+        "--model_size",
+        help="model size (check Whisper model variants on Hugging Face)",
+        default="large-v3-turbo",
+    )
+    parser.add_argument(
+        "audio_files",
+        nargs="+",
+        help="path to audio files with mask (like ../data/*.ogg)",
+    )
+
+    args = parser.parse_args()
+
+    import torch
+    from transformers import WhisperProcessor, WhisperForConditionalGeneration
+
+    main(args)
