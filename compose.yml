@@ -1,0 +1,14 @@
+services:
+  stt:
+    build:
+      context: stt/
+    volumes:
+      - type: bind
+        source: ./stt/src/
+        target: /var/app/src/
+      - type: bind
+        source: ./huggingface/
+        target: /root/.cache/huggingface/
+      - type: bind
+        source: ./data/
+        target: /var/app/data/

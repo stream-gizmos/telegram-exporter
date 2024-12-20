@@ -1,0 +1,16 @@
+x-anchors:
+  - &gpu-support
+    shm_size: 1g
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+              driver: nvidia
+              count: all
+
+services:
+  stt:
+    <<: *gpu-support
+    build:
+      network: host
