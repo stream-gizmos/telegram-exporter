@@ -6,6 +6,7 @@ from os import getenv
 from pathlib import Path
 
 from telethon import TelegramClient
+from telethon.hints import Entity
 from telethon.tl.patched import Message
 
 logging.basicConfig(format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.INFO)
@@ -25,6 +26,9 @@ async def main(args):
 
     session_path = "../sessions/anon"
     async with TelegramClient(session_path, API_ID, API_HASH) as client:
+        entity_info = await client.get_entity(args.chat_name)
+        save_entity_info(entity_info, output_dir)
+
         messages = await client.get_messages(
             entity=args.chat_name,
             reverse=True,
@@ -42,6 +46,12 @@ async def main(args):
 
             print(f"Downloading {file_name=}...")
             await message.download_media(file_path, progress_callback=create_download_progress())
+
+
+def save_entity_info(entity_info: Entity, output_dir: Path) -> None:
+    file_name = f"entity_{entity_info.id}.json"
+    with open(output_dir / file_name, "w") as fp:
+        entity_info.to_json(fp, ensure_ascii=False, indent=2)
 
 
 def find_messages_with_audio(messages: list[Message]) -> list[tuple[str, Message]]:
