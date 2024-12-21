@@ -2,6 +2,7 @@ FROM python:3.10
 
 ENV PYTHONPYCACHEPREFIX=/tmp/python
 ENV PYTHONUTF8=1
+ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 
 RUN set -e; \
     python -m pip install --upgrade pip; \
