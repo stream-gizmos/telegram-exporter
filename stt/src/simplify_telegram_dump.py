@@ -57,7 +57,7 @@ def substitute_audio_transcript(message: dict, input_dir) -> None:
     if "media_type" not in message or message["media_type"] != "voice_message":
         return
 
-    audio_path = Path(input_dir).joinpath(message["file"])
+    audio_path = Path(input_dir) / message["file"]
     transcription = get_voice_message_transcription(audio_path)
 
     if not transcription:
