@@ -30,7 +30,8 @@ async def main(args):
         entity_info = await client.get_entity(args.chat_name)
         save_entity_info(entity_info, output_dir)
 
-        old_messages = read_entity_messages_from_db(entity_info, output_dir) if not args.ignore_old_data else {}
+        old_messages = read_entity_messages_from_db(entity_info, output_dir) \
+            if not args.ignore_old_data else {}
 
         messages: list[Message] = await client.get_messages(
             entity=entity_info,
@@ -39,7 +40,8 @@ async def main(args):
         )
         print(f"Total {len(messages)} messages fetched")
 
-        messages_replies = await fetch_replies(client, entity_info, messages, old_messages)
+        messages_replies = await fetch_replies(client, entity_info, messages, old_messages) \
+            if args.fetch_replies else {}
 
         messages_data = []
         for message in messages:
@@ -53,7 +55,7 @@ async def main(args):
 
             messages_data.append(message_data)
 
-        messages_data = merge_messages_with_old(messages_data, old_messages)
+        messages_data = merge_messages_with_old(messages_data, old_messages, args.fetch_replies)
         save_entity_messages_to_db(entity_info, messages_data, output_dir)
 
         if args.fetch_voice_messages:
@@ -115,7 +117,11 @@ def save_entity_info(entity_info: Entity, output_dir: Path) -> None:
         entity_info.to_json(fp, ensure_ascii=False, indent=2)
 
 
-def merge_messages_with_old(messages_data: list[dict], old_messages: dict[int, dict]) -> list[dict]:
+def merge_messages_with_old(
+        messages_data: list[dict],
+        old_messages: dict[int, dict],
+        fetch_replies_mode: bool,
+) -> list[dict]:
     result = old_messages.copy()
 
     for fresh_message in messages_data:
@@ -123,13 +129,8 @@ def merge_messages_with_old(messages_data: list[dict], old_messages: dict[int, d
             result[fresh_message["id"]] = fresh_message
             continue
 
-        old_message = result[fresh_message["id"]]
-        old_replies = old_message.get("__replies", [])
-        fresh_replies = fresh_message.get("__replies", [])
-
-        # TODO Check the fetch-with-replies mode
-        # TODO Preserve the old replies even executing without the flag for replies
-        if len(fresh_replies) == 0:
+        old_replies = result[fresh_message["id"]].get("__replies", [])
+        if not fetch_replies_mode:
             fresh_message["__replies"] = old_replies
 
         if "__replies" in fresh_message and len(fresh_message["__replies"]) == 0:
@@ -240,6 +241,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ignore-old-data",
         help="fully override the old data",
+        action=BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--fetch-replies",
+        help="add data about replies to posts in channels",
         action=BooleanOptionalAction,
         default=False,
     )
