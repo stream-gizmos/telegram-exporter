@@ -1,6 +1,6 @@
 import asyncio
 import json
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 from datetime import datetime, timedelta
 import logging
 from os import getenv
@@ -30,7 +30,7 @@ async def main(args):
         entity_info = await client.get_entity(args.chat_name)
         save_entity_info(entity_info, output_dir)
 
-        old_messages = read_entity_messages_from_db(entity_info, output_dir)
+        old_messages = read_entity_messages_from_db(entity_info, output_dir) if not args.ignore_old_data else {}
 
         messages: list[Message] = await client.get_messages(
             entity=entity_info,
@@ -227,7 +227,13 @@ if __name__ == "__main__":
         help="directory to dump results",
     )
     parser.add_argument(
-        "--from_date",
+        "--ignore-old-data",
+        help="fully override the old data",
+        action=BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--from-date",
         help="export messages from this date only (including)",
     )
 
