@@ -41,7 +41,8 @@ async def main(args):
 
         messages_with_replies, replies = await append_replies(client, entity_info, messages, old_messages)
 
-        save_entity_messages(entity_info, messages_with_replies, output_dir)
+        messages_with_replies = merge_messages_with_old(messages_with_replies, old_messages)
+        save_entity_messages_to_db(entity_info, messages_with_replies, output_dir)
 
         messages_with_audio = find_messages_with_audio(messages) + find_messages_with_audio(replies)
         print(f"Total {len(messages_with_audio)} audio messages to download")
@@ -114,6 +115,31 @@ def save_entity_info(entity_info: Entity, output_dir: Path) -> None:
     file_name = f"entity_{entity_info.id}.json"
     with open(output_dir / file_name, "w") as fp:
         entity_info.to_json(fp, ensure_ascii=False, indent=2)
+
+
+def merge_messages_with_old(messages_data: list[dict], old_messages: dict[int, dict]) -> list[dict]:
+    result = old_messages.copy()
+
+    for fresh_message in messages_data:
+        if fresh_message["id"] not in result:
+            result[fresh_message["id"]] = fresh_message
+            continue
+
+        old_message = result[fresh_message["id"]]
+        old_replies = old_message.get("__replies", [])
+        fresh_replies = fresh_message.get("__replies", [])
+
+        # TODO Check the fetch-with-replies mode
+        # TODO Preserve the old replies even executing without the flag for replies
+        if len(fresh_replies) == 0:
+            fresh_message["__replies"] = old_replies
+
+        if "__replies" in fresh_message and len(fresh_message["__replies"]) == 0:
+            del fresh_message["__replies"]
+
+        result[fresh_message["id"]] = fresh_message
+
+    return sorted(result.values(), key=lambda m: m["id"])
 
 
 def compose_entity_messages_path(entity_info: Entity, output_dir: Path) -> Path:
