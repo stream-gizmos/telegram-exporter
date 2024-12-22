@@ -56,18 +56,10 @@ async def main(args):
         messages_data = merge_messages_with_old(messages_data, old_messages)
         save_entity_messages_to_db(entity_info, messages_data, output_dir)
 
-        flat_replies = [reply for replies in messages_replies.values() for reply in replies]
-        messages_with_audio = find_messages_with_audio(messages) + find_messages_with_audio(flat_replies)
-        print(f"Total {len(messages_with_audio)} audio messages to download")
-
-        for file_name, message in messages_with_audio:
-            file_path = audio_files_dir / file_name
-
-            if file_path.exists():
-                continue
-
-            print(f"Downloading {file_name=}...")
-            await message.download_media(file_path, progress_callback=create_download_progress())
+        if args.fetch_voice_messages:
+            flat_replies = [reply for replies in messages_replies.values() for reply in replies]
+            audio_messages = find_audio_messages(messages) + find_audio_messages(flat_replies)
+            await download_audio_messages(audio_messages, audio_files_dir)
 
 
 async def fetch_replies(
@@ -169,7 +161,7 @@ def save_entity_messages_to_db(entity_info: Entity, messages_data: list[dict], o
             fp.write(line + "\n")
 
 
-def find_messages_with_audio(messages: list[Message]) -> list[tuple[str, Message]]:
+def find_audio_messages(messages: list[Message]) -> list[tuple[str, Message]]:
     result = []
 
     for message in messages:
@@ -192,6 +184,19 @@ def message_peer_to_string_id(message: Message) -> str | None:
         return f"user_{message.peer_id.user_id}"
 
     return None
+
+
+async def download_audio_messages(audio_messages, audio_files_dir: Path) -> None:
+    print(f"Total {len(audio_messages)} voice messages to download")
+
+    for file_name, message in audio_messages:
+        file_path = audio_files_dir / file_name
+
+        if file_path.exists():
+            continue
+
+        print(f"Downloading {file_name=}...")
+        await message.download_media(file_path, progress_callback=create_download_progress())
 
 
 def create_download_progress(notice_step: float = .1):
@@ -223,7 +228,7 @@ def data_get(d: dict, path: str) -> any:
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Export messages from a Telegram channel, with audio.")
+    parser = ArgumentParser(description="Export messages from a Telegram channel, with replies and audio.")
     parser.add_argument(
         "chat_name",
         help="channel name to extract messages from",
@@ -235,6 +240,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ignore-old-data",
         help="fully override the old data",
+        action=BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--fetch-voice-messages",
+        help="download voice message files",
         action=BooleanOptionalAction,
         default=False,
     )
