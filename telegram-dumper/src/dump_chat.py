@@ -37,14 +37,27 @@ async def main(args):
             reverse=True,
             offset_date=offset_date,
         )
-        print(f"Totally {len(messages)} messages fetched")
+        print(f"Total {len(messages)} messages fetched")
 
-        messages_with_replies, replies = await append_replies(client, entity_info, messages, old_messages)
+        messages_replies = await fetch_replies(client, entity_info, messages, old_messages)
 
-        messages_with_replies = merge_messages_with_old(messages_with_replies, old_messages)
-        save_entity_messages_to_db(entity_info, messages_with_replies, output_dir)
+        messages_data = []
+        for message in messages:
+            message_data = json.loads(message.to_json())
 
-        messages_with_audio = find_messages_with_audio(messages) + find_messages_with_audio(replies)
+            if message.id in messages_replies:
+                message_data["__replies"] = [
+                    json.loads(reply.to_json())
+                    for reply in messages_replies[message.id]
+                ]
+
+            messages_data.append(message_data)
+
+        messages_data = merge_messages_with_old(messages_data, old_messages)
+        save_entity_messages_to_db(entity_info, messages_data, output_dir)
+
+        flat_replies = [reply for replies in messages_replies.values() for reply in replies]
+        messages_with_audio = find_messages_with_audio(messages) + find_messages_with_audio(flat_replies)
         print(f"Total {len(messages_with_audio)} audio messages to download")
 
         for file_name, message in messages_with_audio:
@@ -57,41 +70,34 @@ async def main(args):
             await message.download_media(file_path, progress_callback=create_download_progress())
 
 
-async def append_replies(
+async def fetch_replies(
         client,
         entity_info: Entity,
         current_messages: list[Message],
         old_messages: dict[int, dict],
-) -> tuple[list[dict], list[Message]]:
+) -> dict[int, list[Message]]:
     all_replies = []
 
     messages_with_replies = len(list(filter(None, [is_message_have_replies(message) for message in current_messages])))
     print(f"Total {messages_with_replies} messages with replies to fetch")
 
-    messages_data = []
+    result: dict[int, list[Message]] = {}
     process_counter = 0
     for message in current_messages:
-        message_data = json.loads(message.to_json())
-
         old_message = old_messages.get(message.id)
         is_fetch_required = is_replies_fetch_required(message, old_message)
 
         if is_fetch_required:
             replies: list[Message] = await client.get_messages(entity=entity_info, reply_to=message.id, reverse=True)
             all_replies.extend(replies)
-
-            message_data["__replies"] = []
-            for reply in replies:
-                message_data["__replies"].append(json.loads(reply.to_json()))
+            result[message.id] = replies
 
             process_counter += 1
             if process_counter % max(int(messages_with_replies * .05), 5) == 0:
                 print(f"Fetched replies to {process_counter}/{messages_with_replies} of messages")
                 await asyncio.sleep(1)
 
-        messages_data.append(message_data)
-
-    return messages_data, all_replies
+    return result
 
 
 def is_message_have_replies(message: Message) -> bool:
