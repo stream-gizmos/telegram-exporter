@@ -1,5 +1,8 @@
 from argparse import ArgumentParser
+from contextlib import contextmanager
 from pathlib import Path
+import subprocess
+from tempfile import NamedTemporaryFile
 
 import librosa
 
@@ -25,11 +28,18 @@ def main(args):
                 sr=processor.feature_extractor.sampling_rate,
             )
         except ValueError as e:
-            if "array is too big" in str(e):
-                print("File is too big! Skipping.")
-                continue
-            else:
+            if "array is too big" not in str(e):
                 raise
+
+            print("Cannot read the file! Trying to convert it to WAV by ffmpeg...")
+            with convert_to_temporary_wav_file(
+                    str(file_path),
+                    processor.feature_extractor.sampling_rate
+            ) as temp_file_path:
+                data, samplerate = librosa.load(
+                    str(temp_file_path),
+                    sr=processor.feature_extractor.sampling_rate,
+                )
 
         inputs = processor(
             data,
@@ -70,10 +80,27 @@ def extract_text_from_features(model, processor, inputs: dict) -> str:
     return " ".join(transcription).strip()
 
 
+@contextmanager
+def convert_to_temporary_wav_file(input_audio_file: str, sampling_rate: int):
+    temp_file = NamedTemporaryFile(suffix=".wav").name
+
+    try:
+        cmd = ["ffmpeg", "-hide_banner", "-nostats", "-i", input_audio_file, "-ar", str(sampling_rate), "-y", temp_file]
+        return_code = subprocess.call(cmd)
+
+        if return_code != 0:
+            raise RuntimeError(f"ffmpeg failed with return code {return_code}")
+
+        yield temp_file
+    finally:
+        import os
+        os.remove(temp_file)
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(description="Transcribe audio files to text by the Whisper Model.")
     parser.add_argument(
-        "--model_size",
+        "--model-size",
         help="model size (check Whisper model variants on Hugging Face)",
         default="large-v3-turbo",
     )
