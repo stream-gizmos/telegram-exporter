@@ -20,4 +20,16 @@ COPY src/ .
 
 VOLUME /tmp
 
+#RUN <<EOT
+#set -ex
+#
+#apt update
+#apt install -y \
+#  libogg-dev \
+#  libopusfile-dev
+#
+#pip install numpy
+#pip install git+https://github.com/TeamPyOgg/PyOgg.git#egg=PyOgg
+#EOT
+
 CMD ["bash"]
