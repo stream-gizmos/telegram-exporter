@@ -1,6 +1,6 @@
 # Telegram Exporter
 
-Set of Docker-wrapped scripts to export messages of publics/groups/chats from Telegram in JSON format. It can transcribe voice-messages to text even!
+Set of Docker-wrapped scripts to export messages of channels/chats from Telegram in JSON format. It can transcribe voice-messages to text even!
 
 ## Docker services
 

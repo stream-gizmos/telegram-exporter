@@ -36,7 +36,7 @@ async def main(args):
         print(f"Use '{output_path}' file as output")
 
         old_messages = read_jsonl_with_messages(output_path) \
-            if not args.ignore_old_data else {}
+            if args.preserve_old_data else {}
 
         messages: list[Message] = await client.get_messages(
             entity=entity_info,
@@ -234,10 +234,10 @@ if __name__ == "__main__":
         help="directory to dump results",
     )
     parser.add_argument(
-        "--ignore-old-data",
-        help="fully override the old data",
+        "--preserve-old-data",
+        help="merge new data with old data or fully override it",
         action=BooleanOptionalAction,
-        default=False,
+        default=True,
     )
     parser.add_argument(
         "--fetch-replies",
