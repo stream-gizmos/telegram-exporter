@@ -12,5 +12,3 @@ x-anchors:
 services:
   stt:
     <<: *gpu-support
-    build:
-      network: host
