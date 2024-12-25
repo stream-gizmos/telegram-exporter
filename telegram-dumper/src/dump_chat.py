@@ -10,7 +10,7 @@ from telethon import TelegramClient
 from telethon.hints import Entity
 from telethon.tl.patched import Message
 
-from lib import read_jsonl_with_messages, save_jsonl_with_messages
+from lib import data_get, read_jsonl_with_messages, save_jsonl_with_messages
 
 logging.basicConfig(format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.INFO)
 
@@ -100,10 +100,13 @@ async def fetch_replies(
 
 
 def is_message_have_replies(message: dict | Message) -> bool:
-    if isinstance(message, Message):
+    if not isinstance(message, dict):
         message = message.to_dict()
 
-    return message["replies"] is not None and message["replies"]["replies"] > 0
+    replies_count = data_get(message, 'replies.replies')
+    replies_count = int(replies_count) if replies_count else 0
+
+    return replies_count > 0
 
 
 def is_replies_fetch_required(current_message: Message, old_message: dict | None) -> bool:
@@ -208,19 +211,6 @@ def create_download_progress(notice_step: float = .1):
             prev_notice = percent
 
     return func
-
-
-def data_get(d: dict, path: str) -> any:
-    path_list = path.split(".")
-
-    result = d
-    for path in path_list:
-        if result is None or not isinstance(result, dict):
-            return None
-
-        result = result.get(path)
-
-    return result
 
 
 if __name__ == "__main__":
