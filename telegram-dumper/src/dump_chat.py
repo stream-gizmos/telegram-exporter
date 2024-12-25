@@ -10,6 +10,8 @@ from telethon import TelegramClient
 from telethon.hints import Entity
 from telethon.tl.patched import Message
 
+from lib import read_jsonl_with_messages, save_jsonl_with_messages
+
 logging.basicConfig(format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.INFO)
 
 API_ID = int(getenv("TELEGRAM_API_ID"))
@@ -30,7 +32,10 @@ async def main(args):
         entity_info = await client.get_entity(args.chat_name)
         save_entity_info(entity_info, output_dir)
 
-        old_messages = read_entity_messages_from_db(entity_info, output_dir) \
+        output_path = compose_entity_messages_path(entity_info, output_dir)
+        print(f"Use '{output_path}' file as output")
+
+        old_messages = read_jsonl_with_messages(output_path) \
             if not args.ignore_old_data else {}
 
         messages: list[Message] = await client.get_messages(
@@ -56,7 +61,7 @@ async def main(args):
             messages_data.append(message_data)
 
         messages_data = merge_messages_with_old(messages_data, old_messages, args.fetch_replies)
-        save_entity_messages_to_db(entity_info, messages_data, output_dir)
+        save_jsonl_with_messages(output_path, messages_data)
 
         if args.fetch_voice_messages:
             flat_replies = [reply for replies in messages_replies.values() for reply in replies]
@@ -143,23 +148,6 @@ def merge_messages_with_old(
 
 def compose_entity_messages_path(entity_info: Entity, output_dir: Path) -> Path:
     return output_dir / f"entity_{entity_info.id}_messages.jsonl"
-
-
-def read_entity_messages_from_db(entity_info: Entity, output_dir: Path) -> dict[int, dict]:
-    result = {}
-    with open(compose_entity_messages_path(entity_info, output_dir), "r") as fp:
-        for line in fp.readlines():
-            record = json.loads(line)
-            result[record["id"]] = record
-
-    return result
-
-
-def save_entity_messages_to_db(entity_info: Entity, messages_data: list[dict], output_dir: Path) -> None:
-    with open(compose_entity_messages_path(entity_info, output_dir), "w") as fp:
-        for message in messages_data:
-            line = json.dumps(message, ensure_ascii=False)
-            fp.write(line + "\n")
 
 
 def find_audio_messages(messages: list[Message]) -> list[tuple[str, Message]]:
