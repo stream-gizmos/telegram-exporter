@@ -99,8 +99,11 @@ async def fetch_replies(
     return result
 
 
-def is_message_have_replies(message: Message) -> bool:
-    return message.replies is not None and message.replies.replies > 0
+def is_message_have_replies(message: dict | Message) -> bool:
+    if isinstance(message, Message):
+        message = message.to_dict()
+
+    return message["replies"] is not None and message["replies"]["replies"] > 0
 
 
 def is_replies_fetch_required(current_message: Message, old_message: dict | None) -> bool:
@@ -113,7 +116,8 @@ def is_replies_fetch_required(current_message: Message, old_message: dict | None
 
     return old_channel_id != current_message.replies.channel_id \
         or old_max_id != current_message.replies.max_id \
-        or old_count != current_message.replies.replies
+        or old_count != current_message.replies.replies \
+        or len(old_message.get("__replies", [])) != current_message.replies.replies
 
 
 def save_entity_info(entity_info: Entity, output_dir: Path) -> None:
@@ -130,18 +134,21 @@ def merge_messages_with_old(
     result = old_messages.copy()
 
     for fresh_message in messages_data:
-        if fresh_message["id"] not in result:
-            result[fresh_message["id"]] = fresh_message
+        message_id = fresh_message["id"]
+
+        if message_id not in result:
+            result[message_id] = fresh_message
             continue
 
-        old_replies = result[fresh_message["id"]].get("__replies", [])
-        if not fetch_replies_mode:
+        are_actual_replies_known = "__replies" in fresh_message or not is_message_have_replies(fresh_message)
+        if not fetch_replies_mode or not are_actual_replies_known:
+            old_replies = result[message_id].get("__replies", [])
             fresh_message["__replies"] = old_replies
 
         if "__replies" in fresh_message and len(fresh_message["__replies"]) == 0:
             del fresh_message["__replies"]
 
-        result[fresh_message["id"]] = fresh_message
+        result[message_id] = fresh_message
 
     return sorted(result.values(), key=lambda m: m["id"])
 
