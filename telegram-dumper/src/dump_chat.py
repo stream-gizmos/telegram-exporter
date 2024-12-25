@@ -10,7 +10,12 @@ from telethon import TelegramClient
 from telethon.hints import Entity
 from telethon.tl.patched import Message
 
-from lib import data_get, read_jsonl_with_messages, save_jsonl_with_messages
+from lib import (
+    compose_voice_message_file_name,
+    data_get,
+    read_jsonl_with_messages,
+    save_jsonl_with_messages,
+)
 
 logging.basicConfig(format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.INFO)
 
@@ -167,22 +172,10 @@ def find_audio_messages(messages: list[Message]) -> list[tuple[str, Message]]:
         if message.document is None or message.document.mime_type != "audio/ogg":
             continue
 
-        file_name = f"{message_peer_to_string_id(message)}_msg_{message.id}.oga"
-
+        file_name = compose_voice_message_file_name(message)
         result.append((file_name, message,))
 
     return result
-
-
-def message_peer_to_string_id(message: Message) -> str | None:
-    if hasattr(message.peer_id, "channel_id"):
-        return f"channel_{message.peer_id.channel_id}"
-    if hasattr(message.peer_id, "chat_id"):
-        return f"chat_{message.peer_id.chat_id}"
-    if hasattr(message.peer_id, "user_id"):
-        return f"user_{message.peer_id.user_id}"
-
-    return None
 
 
 async def download_audio_messages(audio_messages, audio_files_dir: Path) -> None:

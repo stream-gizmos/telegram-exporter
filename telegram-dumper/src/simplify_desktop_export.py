@@ -3,6 +3,8 @@ from argparse import ArgumentParser, BooleanOptionalAction
 import os
 from pathlib import Path
 
+from lib import get_voice_message_transcription
+
 
 def main(args):
     if not os.path.isfile(args.input_json_file):
@@ -68,23 +70,6 @@ def substitute_audio_transcript(message: dict, input_dir) -> None:
         "text": transcription,
     }]
     message["text"] = flat_text_array(message["text_entities"])
-
-
-def get_voice_message_transcription(audio_path: Path) -> str | None:
-    transcript_path = audio_path.with_suffix(".txt")
-
-    if not audio_path.exists() or not transcript_path.exists():
-        return
-
-    with open(transcript_path, 'r') as fp:
-        transcription = fp.read()
-
-    transcription = transcription.strip()
-
-    if len(transcription) == 0:
-        return
-
-    return transcription
 
 
 if __name__ == "__main__":
