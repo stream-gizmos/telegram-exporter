@@ -1,5 +1,5 @@
 import json
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 import os
 from pathlib import Path
 
@@ -21,10 +21,10 @@ def main(args):
     input_data = read_jsonl_with_messages(args.input_jsonl_file)
 
     for message in input_data.values():
-        process_message(message, input_dir)
+        process_message(message, input_dir, args)
 
         for reply in message.get('reply_messages', []):
-            process_message(reply, input_dir)
+            process_message(reply, input_dir, args)
 
     with open(args.output_jsonl_file, 'w') as fp:
         for message in input_data.values():
@@ -32,7 +32,7 @@ def main(args):
             fp.write(line + "\n")
 
 
-def process_message(message: dict, input_dir: Path) -> None:
+def process_message(message: dict, input_dir: Path, args) -> None:
     clean_message_fields(message)
     process_reply_to(message)
     process_reactions(message)
@@ -42,6 +42,9 @@ def process_message(message: dict, input_dir: Path) -> None:
 
     process_peer_ref(message, "from_id")
     process_peer_ref(message, "peer_id")
+
+    if args.remove_media:
+        filter_dict(message, {"media"})
 
 
 def clean_message_fields(message: dict) -> None:
@@ -161,6 +164,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "output_jsonl_file",
         help="output JSONL file of text messages",
+    )
+    parser.add_argument(
+        "--remove-media",
+        help="don't add data of media field to output",
+        action=BooleanOptionalAction,
+        default=False,
     )
 
     args = parser.parse_args()
