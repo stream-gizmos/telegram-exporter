@@ -58,7 +58,7 @@ async def main(args):
             message_data = json.loads(message.to_json())
 
             if message.id in messages_replies:
-                message_data["__replies"] = [
+                message_data["reply_messages"] = [
                     json.loads(reply.to_json())
                     for reply in messages_replies[message.id]
                 ]
@@ -125,7 +125,7 @@ def is_replies_fetch_required(current_message: Message, old_message: dict | None
     return old_channel_id != current_message.replies.channel_id \
         or old_max_id != current_message.replies.max_id \
         or old_count != current_message.replies.replies \
-        or len(old_message.get("__replies", [])) != current_message.replies.replies
+        or len(old_message.get("reply_messages", [])) != current_message.replies.replies
 
 
 def save_entity_info(entity_info: Entity, output_dir: Path) -> None:
@@ -148,13 +148,13 @@ def merge_messages_with_old(
             result[message_id] = fresh_message
             continue
 
-        are_actual_replies_known = "__replies" in fresh_message or not is_message_have_replies(fresh_message)
+        are_actual_replies_known = "reply_messages" in fresh_message or not is_message_have_replies(fresh_message)
         if not fetch_replies_mode or not are_actual_replies_known:
-            old_replies = result[message_id].get("__replies", [])
-            fresh_message["__replies"] = old_replies
+            old_replies = result[message_id].get("reply_messages", [])
+            fresh_message["reply_messages"] = old_replies
 
-        if "__replies" in fresh_message and len(fresh_message["__replies"]) == 0:
-            del fresh_message["__replies"]
+        if "reply_messages" in fresh_message and len(fresh_message["reply_messages"]) == 0:
+            del fresh_message["reply_messages"]
 
         result[message_id] = fresh_message
 

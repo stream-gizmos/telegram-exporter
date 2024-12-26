@@ -23,7 +23,7 @@ def main(args):
     for message in input_data.values():
         process_message(message, input_dir)
 
-        for reply in message.get('__replies', []):
+        for reply in message.get('reply_messages', []):
             process_message(reply, input_dir)
 
     with open(args.output_jsonl_file, 'w') as fp:
