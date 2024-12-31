@@ -45,6 +45,8 @@ def process_message(message: dict, input_dir: Path, args) -> None:
 
     if args.remove_media:
         filter_dict(message, {"media"})
+    if args.remove_reply_messages:
+        filter_dict(message, {"reply_messages"})
 
 
 def clean_message_fields(message: dict) -> None:
@@ -168,6 +170,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--remove-media",
         help="don't add data of media field to output",
+        action=BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--remove-reply-messages",
+        help="don't add data of reply_messages field to output",
         action=BooleanOptionalAction,
         default=False,
     )
