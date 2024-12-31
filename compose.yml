@@ -8,27 +8,15 @@ services:
     volumes:
       - ./telegram-dumper/Pipfile:/var/app/Pipfile
       - ./telegram-dumper/Pipfile.lock:/var/app/Pipfile.lock
-      - type: bind
-        source: ./telegram-dumper/src/
-        target: /var/app/src/
-      - type: bind
-        source: ./telegram-dumper/sessions/
-        target: /var/app/sessions/
-      - type: bind
-        source: ./data/
-        target: /var/app/data/
+      - ./telegram-dumper/src/:/var/app/src/
+      - ./telegram-dumper/sessions/:/var/app/sessions/
+      - ./data/:/var/app/data/
   stt:
     build:
       context: stt/
     volumes:
       - ./stt/Pipfile:/var/app/Pipfile
       - ./stt/Pipfile.lock:/var/app/Pipfile.lock
-      - type: bind
-        source: ./stt/src/
-        target: /var/app/src/
-      - type: bind
-        source: ./huggingface/
-        target: /root/.cache/huggingface/
-      - type: bind
-        source: ./data/
-        target: /var/app/data/
+      - ./stt/src/:/var/app/src/
+      - ./huggingface/:/root/.cache/huggingface/
+      - ./data/:/var/app/data/
