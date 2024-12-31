@@ -2,6 +2,7 @@ FROM python:3.10
 
 ENV PYTHONPYCACHEPREFIX=/tmp/python
 ENV PYTHONUTF8=1
+ENV PIPENV_VENV_IN_PROJECT=1
 ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 
 RUN <<EOT
@@ -23,16 +24,20 @@ python -m pip install --upgrade pip
 pip install pipenv
 EOT
 
-WORKDIR /var/app/src
+WORKDIR /var/app
 
-COPY src/Pipfile* ./
+COPY Pipfile* ./
 
 RUN <<EOT
 set -e
 
-pipenv install -v --deploy --system
+pipenv install -v --deploy
 pipenv --clear
 EOT
+
+ENV PATH="/var/app/.venv/bin:$PATH"
+
+WORKDIR /var/app/src
 
 COPY src/ .
 

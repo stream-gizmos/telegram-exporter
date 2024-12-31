@@ -6,6 +6,8 @@ services:
       TELEGRAM_API_ID:
       TELEGRAM_API_HASH:
     volumes:
+      - ./telegram-dumper/Pipfile:/var/app/Pipfile
+      - ./telegram-dumper/Pipfile.lock:/var/app/Pipfile.lock
       - type: bind
         source: ./telegram-dumper/src/
         target: /var/app/src/
@@ -19,6 +21,8 @@ services:
     build:
       context: stt/
     volumes:
+      - ./stt/Pipfile:/var/app/Pipfile
+      - ./stt/Pipfile.lock:/var/app/Pipfile.lock
       - type: bind
         source: ./stt/src/
         target: /var/app/src/
